@@ -6,7 +6,7 @@ export default function LockScreen() {
   const displayTime = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
   return (
-    <div className="flex justify-center bg-black min-h-screen text-white font-sans">
+    <div className="flex justify-center bg-black min-h-screen text-text-primary font-sans">
       <div className="w-full max-w-md h-[100dvh] relative flex flex-col items-center justify-center overflow-hidden bg-black border-x border-zinc-900">
         
         {/* Background Atmosphere */}
@@ -19,7 +19,7 @@ export default function LockScreen() {
           </div>
 
           <div className="space-y-2">
-            <h1 className="text-6xl font-light tracking-tighter text-white">
+            <h1 className="text-6xl font-light tracking-tighter text-text-primary">
               {displayTime}
             </h1>
             <h2 className="text-xl font-medium tracking-wide text-red-400 uppercase">

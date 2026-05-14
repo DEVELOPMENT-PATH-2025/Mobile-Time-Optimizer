@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Cpu, ArrowRight, AlertCircle, Zap, Instagram, Youtube, MessageCircle, TrendingUp, Plus, Minus } from "lucide-react";
+import { Cpu, ArrowRight, AlertCircle, Zap, Instagram, Youtube, MessageCircle, TrendingUp, Plus, Minus, Moon, Sun } from "lucide-react";
 import { AppUsage } from "../App";
 
-export default function Dashboard({ domain, userName, usage, onSwitchToAgent, onSwitchToAnalytics, onUpdateTarget }: { domain: string, userName: string, usage: AppUsage[], onSwitchToAgent: () => void, onSwitchToAnalytics: () => void, onUpdateTarget: (app: string, delta: number) => void }) {
+export default function Dashboard({ domain, userName, usage, onSwitchToAgent, onSwitchToAnalytics, onUpdateTarget, isDarkMode, onToggleDarkMode }: { domain: string, userName: string, usage: AppUsage[], onSwitchToAgent: () => void, onSwitchToAnalytics: () => void, onUpdateTarget: (app: string, delta: number) => void, isDarkMode: boolean, onToggleDarkMode: () => void }) {
   
   // Format Date (e.g. Wednesday, May 13)
   const today = new Date();
@@ -30,15 +30,20 @@ export default function Dashboard({ domain, userName, usage, onSwitchToAgent, on
     <div className="space-y-5 animate-in fade-in duration-500 pb-6">
       
       {/* Header section */}
-      <div className="pt-2 pb-2">
-         <h1 className="text-[28px] leading-tight font-semibold text-[#8a9cc2]">
-           Good morning, <span className="text-[#3c78d8]">{userName}</span>
-         </h1>
-         <p className="text-[15px] font-medium text-[#4a6bba] mt-1">{dateStr}</p>
+      <div className="pt-2 pb-2 flex items-start justify-between">
+         <div>
+           <h1 className="text-[28px] leading-tight font-semibold text-text-secondary">
+             Good morning, <span className="text-[#3c78d8]">{userName}</span>
+           </h1>
+           <p className="text-[15px] font-medium text-text-muted mt-1">{dateStr}</p>
+         </div>
+         <button onClick={onToggleDarkMode} className="w-10 h-10 shrink-0 rounded-full bg-bg-card border border-bg-border flex items-center justify-center hover:bg-bg-hover transition-colors">
+            {isDarkMode ? <Sun className="w-5 h-5 text-text-secondary" /> : <Moon className="w-5 h-5 text-text-secondary" />}
+         </button>
       </div>
 
       {/* Overview Card */}
-      <div className="bg-[#131823] border border-[#1e2433] rounded-[24px] p-6 relative overflow-hidden shadow-sm">
+      <div className="bg-bg-card border border-bg-border rounded-[24px] p-6 relative overflow-hidden shadow-sm">
         <div className="flex justify-between items-start mb-2">
           <div className="flex items-baseline">
             <span className="text-[48px] font-bold tracking-tight">{hours}.{(minutes/60*10).toFixed(0)}h</span>
@@ -52,14 +57,14 @@ export default function Dashboard({ domain, userName, usage, onSwitchToAgent, on
           )}
         </div>
         
-        <p className="text-[#8c9bab] text-[15px] font-medium mb-6">Total screen time today</p>
+        <p className="text-text-muted text-[15px] font-medium mb-6">Total screen time today</p>
         
-        <div className="flex justify-between text-[13px] text-[#5e7194] font-medium mb-2.5">
+        <div className="flex justify-between text-[13px] text-text-muted font-medium mb-2.5">
           <span>Daily goal: {dailyGoalMinutes/60}h</span>
           <span>{isOverGoal ? "0.0h" : ((dailyGoalMinutes - totalMinutes)/60).toFixed(1) + "h"} remaining</span>
         </div>
         
-        <div className="h-2.5 w-full bg-[#1e2433] rounded-full overflow-hidden">
+        <div className="h-2.5 w-full bg-bg-border rounded-full overflow-hidden">
           <div 
             className="h-full bg-[#fbbc04] rounded-full" 
             style={{ width: `${Math.min((totalMinutes / dailyGoalMinutes) * 100, 100)}%` }}
@@ -86,31 +91,31 @@ export default function Dashboard({ domain, userName, usage, onSwitchToAgent, on
 
       {/* App List */}
       <div className="space-y-4 pt-2">
-        <h2 className="text-[20px] font-bold text-white tracking-wide">Top Apps Today</h2>
+        <h2 className="text-[20px] font-bold text-text-primary tracking-wide">Top Apps Today</h2>
         
         <div className="space-y-3">
           {usage.map((item) => {
             const isAppOver = item.timeInMinutes > item.targetInMinutes;
             return (
-              <div key={item.app} className="bg-[#131823] border border-[#1e2433] rounded-[20px] p-5">
+              <div key={item.app} className="bg-bg-card border border-bg-border rounded-[20px] p-5">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-[#1c2230] rounded-2xl flex items-center justify-center shrink-0">
+                    <div className="w-12 h-12 bg-bg-hover rounded-2xl flex items-center justify-center shrink-0">
                       {getIcon(item.iconName)}
                     </div>
                     <div>
-                      <h3 className="font-bold text-[17px] text-white">{item.app}</h3>
-                      <p className="text-[#8c9bab] text-[14px]">
+                      <h3 className="font-bold text-[17px] text-text-primary">{item.app}</h3>
+                      <p className="text-text-muted text-[14px]">
                         {(item.timeInMinutes/60).toFixed(1)}h / {(item.targetInMinutes/60).toFixed(1)}h target
                       </p>
                     </div>
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    <button onClick={() => onUpdateTarget(item.app, -15)} className="w-9 h-9 rounded-full bg-[#1c2230] flex items-center justify-center text-[#8c9bab] hover:text-white transition-colors">
+                    <button onClick={() => onUpdateTarget(item.app, -15)} className="w-9 h-9 rounded-full bg-bg-hover flex items-center justify-center text-text-muted hover:text-text-primary transition-colors">
                       <Minus className="w-4 h-4" />
                     </button>
-                    <button onClick={() => onUpdateTarget(item.app, 15)} className="w-9 h-9 rounded-full bg-[#1c2230] flex items-center justify-center text-[#8c9bab] hover:text-white transition-colors">
+                    <button onClick={() => onUpdateTarget(item.app, 15)} className="w-9 h-9 rounded-full bg-bg-hover flex items-center justify-center text-text-muted hover:text-text-primary transition-colors">
                       <Plus className="w-4 h-4" />
                     </button>
                     <button onClick={onSwitchToAgent} className="w-9 h-9 rounded-[12px] bg-[#3c78d8]/20 flex items-center justify-center text-[#3c78d8] ml-1">
@@ -119,7 +124,7 @@ export default function Dashboard({ domain, userName, usage, onSwitchToAgent, on
                   </div>
                 </div>
 
-                <div className="h-[6px] w-full bg-[#1e2433] rounded-full overflow-hidden relative">
+                <div className="h-[6px] w-full bg-bg-border rounded-full overflow-hidden relative">
                   <div 
                     className={`absolute top-0 left-0 h-full rounded-full ${isAppOver ? 'bg-[#f75b6e]' : 'bg-[#3c78d8]'}`} 
                     style={{ width: `${Math.min((item.timeInMinutes / item.targetInMinutes) * 100, 100)}%` }}
@@ -142,7 +147,7 @@ export default function Dashboard({ domain, userName, usage, onSwitchToAgent, on
           })}
         </div>
 
-        <button onClick={onSwitchToAnalytics} className="w-full flex items-center justify-center gap-2 py-4 bg-[#131823] border border-[#1e2433] rounded-[20px] text-[#8ca0c9] font-medium hover:bg-[#1a2130] transition-colors mt-2 text-[15px]">
+        <button onClick={onSwitchToAnalytics} className="w-full flex items-center justify-center gap-2 py-4 bg-bg-card border border-bg-border rounded-[20px] text-text-secondary font-medium hover:bg-bg-hover transition-colors mt-2 text-[15px]">
           View All Apps & Analytics
           <ArrowRight className="w-4 h-4" />
         </button>
@@ -153,15 +158,15 @@ export default function Dashboard({ domain, userName, usage, onSwitchToAgent, on
           className="w-full mt-4 bg-gradient-to-r from-[#4d88ff] to-[#3a6be8] p-5 rounded-[24px] flex items-center justify-between shadow-[0_10px_30px_rgba(58,107,232,0.3)] group transition-transform active:scale-[0.98]"
         >
           <div className="flex items-center gap-4 text-left">
-            <Cpu className="w-8 h-8 text-white shrink-0" />
+            <Cpu className="w-8 h-8 text-text-primary shrink-0" />
             <div>
-              <h3 className="text-white font-bold text-[18px] mb-0.5">Personal AI Agent</h3>
+              <h3 className="text-text-primary font-bold text-[18px] mb-0.5">Personal AI Agent</h3>
               <p className="text-blue-100 text-[14px] leading-snug">
                 Get recommendations for {domain}
               </p>
             </div>
           </div>
-          <ArrowRight className="w-5 h-5 text-white shrink-0 opacity-80 group-hover:translate-x-1 transition-transform" />
+          <ArrowRight className="w-5 h-5 text-text-primary shrink-0 opacity-80 group-hover:translate-x-1 transition-transform" />
         </button>
       </div>
     </div>

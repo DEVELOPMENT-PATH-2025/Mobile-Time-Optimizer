@@ -3,11 +3,51 @@
 @theme {
   --font-sans: "Inter", -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
+  
+  --color-bg-app: var(--color-bg-app);
+  --color-bg-mobile: var(--color-bg-mobile);
+  --color-bg-card: var(--color-bg-card);
+  --color-bg-border: var(--color-bg-border);
+  --color-bg-hover: var(--color-bg-hover);
+  --color-bg-chart-hover: var(--color-bg-chart-hover);
+
+  --color-text-primary: var(--color-text-primary);
+  --color-text-high: var(--color-text-high);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted: var(--color-text-muted);
+}
+
+:root {
+  --color-bg-app: #f8fafc;
+  --color-bg-mobile: #ffffff;
+  --color-bg-card: #f1f5f9;
+  --color-bg-border: #e2e8f0;
+  --color-bg-hover: #e2e8f0;
+  --color-bg-chart-hover: #cbd5e1;
+  
+  --color-text-primary: #0f172a;
+  --color-text-high: #334155;
+  --color-text-secondary: #475569;
+  --color-text-muted: #64748b;
+}
+
+.dark {
+  --color-bg-app: #050608;
+  --color-bg-mobile: #0b0e14;
+  --color-bg-card: #131823;
+  --color-bg-border: #1e2433;
+  --color-bg-hover: #1a2130;
+  --color-bg-chart-hover: #2a344a;
+  
+  --color-text-primary: #ffffff;
+  --color-text-high: #c1d0eb;
+  --color-text-secondary: #8ca0c9;
+  --color-text-muted: #5e7194;
 }
 
 body {
-  background-color: #050608;
-  color: #fff;
+  background-color: var(--color-bg-app);
+  color: var(--color-text-primary);
   font-family: "Inter", -apple-system, sans-serif;
   margin: 0;
   padding: 0;
@@ -32,6 +72,6 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e2433;
+  background: var(--color-bg-border);
   border-radius: 4px;
 }

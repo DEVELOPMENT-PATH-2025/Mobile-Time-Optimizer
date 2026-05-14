@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Home, MessageSquare, Settings as SettingsIcon, BarChart2, Cpu } from "lucide-react";
+import { Home, MessageSquare, Settings as SettingsIcon, BarChart2, Cpu, Loader2 } from "lucide-react";
 import Dashboard from "./components/Dashboard";
 import Chatbot from "./components/Chatbot";
 import Setup from "./components/Setup";
@@ -7,6 +7,8 @@ import LockScreen from "./components/LockScreen";
 import Analytics from "./components/Analytics";
 import Settings from "./components/Settings";
 import AgentReport from "./components/AgentReport";
+import { auth, fetchUserProfile, saveUserProfile, syncAppUsage, logOut } from "./services/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 export type AppUsage = {
   app: string;
@@ -23,25 +25,19 @@ const DEFAULT_USAGE: AppUsage[] = [
 ];
 
 export default function App() {
-  const [domain, setDomain] = useState<string | null>(localStorage.getItem("student_domain"));
-  const [userName, setUserName] = useState<string | null>(localStorage.getItem("student_name"));
+  const [domain, setDomain] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"home" | "agent" | "analytics" | "focus" | "settings">("home");
   
-  const [usageData, setUsageData] = useState<AppUsage[]>(() => {
-    const saved = localStorage.getItem("screen_time_usage");
-    if (saved) return JSON.parse(saved);
-    return DEFAULT_USAGE;
-  });
+  const [isDarkMode, setIsDarkMode] = useState(true);
 
-  const [isMidnightLockEnabled, setIsMidnightLockEnabled] = useState(() => {
-    return localStorage.getItem("midnight_lock_enabled") !== "false";
-  });
+  const [usageData, setUsageData] = useState<AppUsage[]>(DEFAULT_USAGE);
+
+  const [isMidnightLockEnabled, setIsMidnightLockEnabled] = useState(true);
 
   const [isMidnightLocked, setIsMidnightLocked] = useState(false);
-
-  useEffect(() => {
-    localStorage.setItem("screen_time_usage", JSON.stringify(usageData));
-  }, [usageData]);
+  const [loadingConfig, setLoadingConfig] = useState(true);
+  const [authUser, setAuthUser] = useState<any>(null);
 
   useEffect(() => {
     // Check if it's between 11 PM and 3 AM
@@ -64,6 +60,57 @@ export default function App() {
     return () => clearInterval(interval);
   }, [isMidnightLockEnabled]);
 
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setAuthUser(user);
+      if (user) {
+        const profile = await fetchUserProfile(user.uid);
+        if (profile) {
+          setUserName(profile.userName);
+          setDomain(profile.domain);
+          if (profile.midnightLockEnabled !== undefined) {
+             setIsMidnightLockEnabled(profile.midnightLockEnabled);
+          }
+          if (profile.themeMode !== undefined) {
+             setIsDarkMode(profile.themeMode === 'dark');
+          }
+          // Ideally fetch usage from DB, but for now we will just use defaults / local and sync up
+          const saved = localStorage.getItem("screen_time_usage");
+          if (saved) {
+             const parsed = JSON.parse(saved);
+             setUsageData(parsed);
+             syncAppUsage(user.uid, parsed);
+          }
+        }
+      } else {
+        // Logged out
+        setUserName(null);
+        setDomain(null);
+      }
+      setLoadingConfig(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (authUser && userName && domain) {
+      saveUserProfile(authUser.uid, { themeMode: isDarkMode ? 'dark' : 'light' });
+    }
+    if (isDarkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [isDarkMode, authUser, userName, domain]);
+
+  useEffect(() => {
+    localStorage.setItem("screen_time_usage", JSON.stringify(usageData));
+    if (authUser && userName && domain) {
+       syncAppUsage(authUser.uid, usageData);
+    }
+  }, [usageData, authUser, userName, domain]);
+
   const updateTarget = (appName: string, deltaMinutes: number) => {
     setUsageData(prev => prev.map(u => 
       u.app === appName 
@@ -72,71 +119,96 @@ export default function App() {
     ));
   };
 
+  const handleCompleteSetup = async (name: string, dom: string) => {
+    setUserName(name);
+    setDomain(dom);
+    if (authUser) {
+       await saveUserProfile(authUser.uid, { userName: name, domain: dom, midnightLockEnabled: isMidnightLockEnabled, themeMode: isDarkMode ? 'dark' : 'light' });
+    }
+  };
+
+  if (loadingConfig) {
+     return (
+       <div className="flex justify-center items-center min-h-screen bg-bg-app">
+          <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+       </div>
+     );
+  }
+
   if (isMidnightLocked) {
     return <LockScreen />;
   }
 
   if (!domain || !userName) {
-    return <Setup onComplete={(n, d) => {
-      setUserName(n);
-      setDomain(d);
-      localStorage.setItem("student_name", n);
-      localStorage.setItem("student_domain", d);
-    }} />;
+    return <Setup onComplete={handleCompleteSetup} onGoogleLogin={() => {}} />;
   }
 
-  const handleReset = () => {
-    localStorage.removeItem("student_domain");
-    localStorage.removeItem("student_name");
+  const handleReset = async () => {
+    await logOut();
     setDomain(null);
     setUserName(null);
   };
 
   return (
-    <div className="flex justify-center bg-[#050608] min-h-screen text-white font-sans selection:bg-blue-500/30">
+    <div className={`flex justify-center bg-bg-app min-h-screen text-text-primary font-sans selection:bg-blue-500/30 ${isDarkMode ? 'dark' : ''}`}>
       {/* Mobile Form Factor Wrapper */}
-      <div className="w-full max-w-md h-[100dvh] relative flex flex-col shadow-2xl overflow-hidden bg-[#0b0e14] border-x border-[#1e2330]">
+      <div className="w-full max-w-md h-[100dvh] relative flex flex-col shadow-2xl overflow-hidden bg-bg-mobile border-x border-bg-border">
         
         {/* Main Content Area */}
         <main className="flex-1 overflow-y-auto px-5 pt-8 pb-24 hide-scrollbar">
-          {activeTab === "home" && <Dashboard domain={domain} userName={userName} usage={usageData} onSwitchToAgent={() => setActiveTab("agent")} onSwitchToAnalytics={() => setActiveTab("analytics")} onUpdateTarget={updateTarget} />}
+          {activeTab === "home" && <Dashboard domain={domain} userName={userName} usage={usageData} onSwitchToAgent={() => setActiveTab("agent")} onSwitchToAnalytics={() => setActiveTab("analytics")} onUpdateTarget={updateTarget} isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} />}
           {activeTab === "agent" && <AgentReport domain={domain} usage={usageData} />}
           {activeTab === "analytics" && <Analytics usage={usageData} />}
           {activeTab === "focus" && <Chatbot domain={domain} userName={userName} />}
-          {activeTab === "settings" && <Settings userName={userName} domain={domain} onReset={handleReset} midnightLockEnabled={isMidnightLockEnabled} onToggleMidnightLock={(enabled) => {
-            setIsMidnightLockEnabled(enabled);
-            localStorage.setItem("midnight_lock_enabled", String(enabled));
-          }} onUpdateProfile={(name, newDomain) => {
-            setUserName(name);
-            setDomain(newDomain);
-            localStorage.setItem("student_name", name);
-            localStorage.setItem("student_domain", newDomain);
-          }} />}
+          {activeTab === "settings" && <Settings 
+            userName={userName} 
+            domain={domain} 
+            onReset={handleReset} 
+            midnightLockEnabled={isMidnightLockEnabled} 
+            onToggleMidnightLock={(enabled) => {
+              setIsMidnightLockEnabled(enabled);
+              localStorage.setItem("midnight_lock_enabled", String(enabled));
+              if (authUser) {
+                 saveUserProfile(authUser.uid, { midnightLockEnabled: enabled });
+              }
+            }} 
+            onUpdateProfile={(name, newDomain) => {
+              setUserName(name);
+              setDomain(newDomain);
+              localStorage.setItem("student_name", name);
+              localStorage.setItem("student_domain", newDomain);
+              if (authUser) {
+                 saveUserProfile(authUser.uid, { userName: name, domain: newDomain });
+              }
+            }} 
+            isDarkMode={isDarkMode}
+            onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+          />}
         </main>
 
         {/* Bottom Navigation */}
-        <nav className="absolute shadow-[0_-10px_40px_rgba(0,0,0,0.8)] bottom-0 w-full h-[88px] bg-[#0b0e14]/95 backdrop-blur-2xl border-t border-[#1e2330] flex items-center justify-between px-3 pb-4 pt-2 z-20">
-          <button onClick={() => setActiveTab("home")} className={`flex flex-col flex-1 items-center justify-center gap-1.5 transition-colors ${activeTab === 'home' ? 'text-blue-500' : 'text-[#5a657e]'}`}>
+        <nav className="absolute shadow-[0_-10px_40px_rgba(0,0,0,0.8)] bottom-0 w-full h-[88px] bg-bg-mobile/95 backdrop-blur-2xl border-t border-bg-border flex items-center justify-between px-3 pb-4 pt-2 z-20">
+          <button onClick={() => setActiveTab("home")} className={`flex flex-col flex-1 items-center justify-center gap-1.5 transition-colors ${activeTab === 'home' ? 'text-blue-500' : 'text-text-muted'}`}>
             <Home className="w-[22px] h-[22px]" />
             <span className="text-[10px] tracking-wide font-medium">Dashboard</span>
           </button>
           
-          <button onClick={() => setActiveTab("agent")} className={`flex flex-col flex-1 items-center justify-center gap-1.5 transition-colors ${activeTab === 'agent' ? 'text-blue-500' : 'text-[#5a657e]'}`}>
+          <button onClick={() => setActiveTab("agent")} className={`flex flex-col flex-1 items-center justify-center gap-1.5 transition-colors ${activeTab === 'agent' ? 'text-blue-500' : 'text-text-muted'}`}>
             <Cpu className="w-[22px] h-[22px]" />
             <span className="text-[10px] tracking-wide font-medium">Agent</span>
           </button>
 
-          <button onClick={() => setActiveTab("analytics")} className={`flex flex-col flex-1 items-center justify-center gap-1.5 transition-colors ${activeTab === 'analytics' ? 'text-blue-500' : 'text-[#5a657e]'}`}>
+          <button onClick={() => setActiveTab("analytics")} className={`flex flex-col flex-1 items-center justify-center gap-1.5 transition-colors ${activeTab === 'analytics' ? 'text-blue-500' : 'text-text-muted'}`}>
             <BarChart2 className="w-[22px] h-[22px]" />
             <span className="text-[10px] tracking-wide font-medium">Analytics</span>
           </button>
 
-          <button onClick={() => setActiveTab("focus")} className={`flex flex-col flex-1 items-center justify-center gap-1.5 transition-colors ${activeTab === 'focus' ? 'text-blue-500' : 'text-[#5a657e]'}`}>
+          <button onClick={() => setActiveTab("focus")} className={`flex flex-col flex-1 items-center justify-center gap-1.5 transition-colors ${activeTab === 'focus' ? 'text-blue-500' : 'text-text-muted'}`}>
             <MessageSquare className="w-[22px] h-[22px]" />
             <span className="text-[10px] tracking-wide font-medium">FocusAI</span>
           </button>
 
-          <button onClick={() => setActiveTab("settings")} className={`flex flex-col flex-1 items-center justify-center gap-1.5 transition-colors ${activeTab === 'settings' ? 'text-blue-500' : 'text-[#5a657e]'}`}>
+          <button onClick={() => setActiveTab("settings")} className={`flex flex-col flex-1 items-center justify-center gap-1.5 transition-colors ${activeTab === 'settings' ? 'text-blue-500' : 'text-text-muted'}`}>
             <SettingsIcon className="w-[22px] h-[22px]" />
             <span className="text-[10px] tracking-wide font-medium">Settings</span>
           </button>
