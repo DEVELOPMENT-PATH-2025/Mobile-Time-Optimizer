@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Home, MessageSquare, Settings as SettingsIcon, BarChart2, Cpu, Loader2 } from "lucide-react";
+import { Home, MessageSquare, Settings as SettingsIcon, BarChart2, Cpu } from "lucide-react";
 import Dashboard from "./components/Dashboard";
 import Chatbot from "./components/Chatbot";
 import Setup from "./components/Setup";
@@ -7,8 +7,6 @@ import LockScreen from "./components/LockScreen";
 import Analytics from "./components/Analytics";
 import Settings from "./components/Settings";
 import AgentReport from "./components/AgentReport";
-import { auth, fetchUserProfile, saveUserProfile, syncAppUsage, logOut } from "./services/firebase";
-import { onAuthStateChanged } from "firebase/auth";
 
 export type AppUsage = {
   app: string;
@@ -25,19 +23,39 @@ const DEFAULT_USAGE: AppUsage[] = [
 ];
 
 export default function App() {
-  const [domain, setDomain] = useState<string | null>(null);
-  const [userName, setUserName] = useState<string | null>(null);
+  const [domain, setDomain] = useState<string | null>(localStorage.getItem("student_domain"));
+  const [userName, setUserName] = useState<string | null>(localStorage.getItem("student_name"));
   const [activeTab, setActiveTab] = useState<"home" | "agent" | "analytics" | "focus" | "settings">("home");
   
-  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem("theme_mode");
+    return saved ? saved === "dark" : true; // Default to dark mode
+  });
 
-  const [usageData, setUsageData] = useState<AppUsage[]>(DEFAULT_USAGE);
+  const [usageData, setUsageData] = useState<AppUsage[]>(() => {
+    const saved = localStorage.getItem("screen_time_usage");
+    if (saved) return JSON.parse(saved);
+    return DEFAULT_USAGE;
+  });
 
-  const [isMidnightLockEnabled, setIsMidnightLockEnabled] = useState(true);
+  const [isMidnightLockEnabled, setIsMidnightLockEnabled] = useState(() => {
+    return localStorage.getItem("midnight_lock_enabled") !== "false";
+  });
 
   const [isMidnightLocked, setIsMidnightLocked] = useState(false);
-  const [loadingConfig, setLoadingConfig] = useState(true);
-  const [authUser, setAuthUser] = useState<any>(null);
+
+  useEffect(() => {
+    localStorage.setItem("theme_mode", isDarkMode ? "dark" : "light");
+    if (isDarkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [isDarkMode]);
+
+  useEffect(() => {
+    localStorage.setItem("screen_time_usage", JSON.stringify(usageData));
+  }, [usageData]);
 
   useEffect(() => {
     // Check if it's between 11 PM and 3 AM
@@ -60,57 +78,6 @@ export default function App() {
     return () => clearInterval(interval);
   }, [isMidnightLockEnabled]);
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setAuthUser(user);
-      if (user) {
-        const profile = await fetchUserProfile(user.uid);
-        if (profile) {
-          setUserName(profile.userName);
-          setDomain(profile.domain);
-          if (profile.midnightLockEnabled !== undefined) {
-             setIsMidnightLockEnabled(profile.midnightLockEnabled);
-          }
-          if (profile.themeMode !== undefined) {
-             setIsDarkMode(profile.themeMode === 'dark');
-          }
-          // Ideally fetch usage from DB, but for now we will just use defaults / local and sync up
-          const saved = localStorage.getItem("screen_time_usage");
-          if (saved) {
-             const parsed = JSON.parse(saved);
-             setUsageData(parsed);
-             syncAppUsage(user.uid, parsed);
-          }
-        }
-      } else {
-        // Logged out
-        setUserName(null);
-        setDomain(null);
-      }
-      setLoadingConfig(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (authUser && userName && domain) {
-      saveUserProfile(authUser.uid, { themeMode: isDarkMode ? 'dark' : 'light' });
-    }
-    if (isDarkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }, [isDarkMode, authUser, userName, domain]);
-
-  useEffect(() => {
-    localStorage.setItem("screen_time_usage", JSON.stringify(usageData));
-    if (authUser && userName && domain) {
-       syncAppUsage(authUser.uid, usageData);
-    }
-  }, [usageData, authUser, userName, domain]);
-
   const updateTarget = (appName: string, deltaMinutes: number) => {
     setUsageData(prev => prev.map(u => 
       u.app === appName 
@@ -119,32 +86,22 @@ export default function App() {
     ));
   };
 
-  const handleCompleteSetup = async (name: string, dom: string) => {
-    setUserName(name);
-    setDomain(dom);
-    if (authUser) {
-       await saveUserProfile(authUser.uid, { userName: name, domain: dom, midnightLockEnabled: isMidnightLockEnabled, themeMode: isDarkMode ? 'dark' : 'light' });
-    }
-  };
-
-  if (loadingConfig) {
-     return (
-       <div className="flex justify-center items-center min-h-screen bg-bg-app">
-          <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-       </div>
-     );
-  }
-
   if (isMidnightLocked) {
     return <LockScreen />;
   }
 
   if (!domain || !userName) {
-    return <Setup onComplete={handleCompleteSetup} onGoogleLogin={() => {}} />;
+    return <Setup onComplete={(n, d) => {
+      setUserName(n);
+      setDomain(d);
+      localStorage.setItem("student_name", n);
+      localStorage.setItem("student_domain", d);
+    }} />;
   }
 
-  const handleReset = async () => {
-    await logOut();
+  const handleReset = () => {
+    localStorage.removeItem("student_domain");
+    localStorage.removeItem("student_name");
     setDomain(null);
     setUserName(null);
   };
@@ -168,18 +125,12 @@ export default function App() {
             onToggleMidnightLock={(enabled) => {
               setIsMidnightLockEnabled(enabled);
               localStorage.setItem("midnight_lock_enabled", String(enabled));
-              if (authUser) {
-                 saveUserProfile(authUser.uid, { midnightLockEnabled: enabled });
-              }
             }} 
             onUpdateProfile={(name, newDomain) => {
               setUserName(name);
               setDomain(newDomain);
               localStorage.setItem("student_name", name);
               localStorage.setItem("student_domain", newDomain);
-              if (authUser) {
-                 saveUserProfile(authUser.uid, { userName: name, domain: newDomain });
-              }
             }} 
             isDarkMode={isDarkMode}
             onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}

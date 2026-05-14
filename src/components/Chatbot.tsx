@@ -42,10 +42,14 @@ export default function Chatbot({ domain, userName }: { domain: string, userName
       }]);
     } catch(err) {
        console.error(err);
+       let errorMessage = "I'm having trouble connecting right now. Please ensure your GEMINI_API_KEY is configured in the Secrets tab and associated with a project.";
+       if (err instanceof Error && err.message) {
+           errorMessage = err.message;
+       }
        setMessages(prev => [...prev, { 
         id: Date.now().toString(), 
         role: "model", 
-        text: "I'm having trouble connecting right now. Please ensure your GEMINI_API_KEY is configured in the Secrets tab and associated with a project." 
+        text: errorMessage
       }]);
     } finally {
       setIsTyping(false);
@@ -99,7 +103,7 @@ export default function Chatbot({ domain, userName }: { domain: string, userName
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask for custom app limits & advice..."
-            className="w-full bg-bg-card border border-bg-border rounded-full pl-6 pr-14 py-4 text-[15px] text-text-primary focus:outline-none focus:border-blue-500 transition-all placeholder:text-zinc-500 shadow-lg"
+            className="w-full bg-[#121620] border border-bg-border rounded-full pl-6 pr-14 py-4 text-[15px] text-text-primary focus:outline-none focus:border-blue-500 transition-all placeholder:text-zinc-500 shadow-lg"
           />
           <button 
             type="submit" 

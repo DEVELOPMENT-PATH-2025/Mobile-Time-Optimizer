@@ -8,9 +8,9 @@ export const analyzeUsage = async (domain: string, usageData: { app: string; tim
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "API request failed");
     return data;
-  } catch (error: any) {
+  } catch (error) {
     console.error("AI Analysis failed", error);
-    return { error: error.message || "Failed to connect to AI service" };
+    return { error: error instanceof Error ? error.message : "Analysis failed" };
   }
 };
 
@@ -24,7 +24,7 @@ export const sendChatMessage = async (domain: string, userName: string, history:
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "API request failed");
     return data.text;
-  } catch (err: any) {
+  } catch (err) {
     console.error(err);
     throw err;
   }

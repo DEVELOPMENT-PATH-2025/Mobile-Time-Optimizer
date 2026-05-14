@@ -11,7 +11,7 @@ async function startServer() {
 
   app.post("/api/analyze", async (req, res) => {
     try {
-      const apiKey = "AIzaSyCv2FXtpa0Kp9CWfkEfQcYJgBuWTfEFEB8";
+      const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) throw new Error("Missing GEMINI_API_KEY");
       
       const { domain, usageData } = req.body;
@@ -36,7 +36,7 @@ Format the response in JSON with this structure:
 `;
 
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3-flash-preview",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -45,18 +45,19 @@ Format the response in JSON with this structure:
 
       res.json(JSON.parse(response.text || "{}"));
     } catch(err: any) {
-      console.error(err);
-      if (err.message && err.message.includes("API key not valid")) {
-         return res.status(400).json({ error: "The provided API Key (ending in FEB8) is invalid according to Google. Please check your key or generate a new one." });
+      console.error("Gemini API Error:", err);
+      const errorStr = (err instanceof Error ? err.message : JSON.stringify(err)) || "";
+      if (errorStr.includes("API key not valid") || errorStr.includes("API_KEY_INVALID")) {
+        return res.status(400).json({ error: "Invalid API Key. Please update your GEMINI_API_KEY in the Secrets tab." });
       }
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ error: errorStr });
     }
   });
 
   app.post("/api/chat", async (req, res) => {
     try {
-      const apiKey = "AIzaSyCv2FXtpa0Kp9CWfkEfQcYJgBuWTfEFEB8";
-      if (!apiKey) throw new Error("Missing GEMINI_API_KEY");
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) return res.status(400).json({ error: "Missing GEMINI_API_KEY in server secrets." });
       
       const { domain, userName, history, message } = req.body;
       const ai = new GoogleGenAI({ apiKey });
@@ -70,17 +71,18 @@ Format the response in JSON with this structure:
       contents.push({ role: "user", parts: [{ text: `[Context: I am studying ${domain}. My name is ${userName}.] ${message}` }] });
 
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3-flash-preview",
         contents,
         config: { systemInstruction }
       });
       res.json({ text: response.text });
     } catch(err: any) {
-      console.error(err);
-      if (err.message && err.message.includes("API key not valid")) {
-         return res.status(400).json({ error: "The provided API Key (ending in FEB8) is invalid according to Google. Please check your key or generate a new one." });
+      console.error("Gemini API Error:", err);
+      const errorStr = (err instanceof Error ? err.message : JSON.stringify(err)) || "";
+      if (errorStr.includes("API key not valid") || errorStr.includes("API_KEY_INVALID")) {
+        return res.status(400).json({ error: "Invalid API Key. Please update your GEMINI_API_KEY in the Secrets tab." });
       }
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ error: errorStr });
     }
   });
 

@@ -186,7 +186,7 @@ export default function Settings({
 
           <button 
              onClick={() => onToggleMidnightLock(!midnightLockEnabled)}
-             className="w-full flex items-center justify-between p-4 hover:bg-bg-hover transition-colors"
+             className="w-full flex items-center justify-between p-4 border-b border-bg-border hover:bg-bg-hover transition-colors"
           >
              <div className="flex items-center gap-4">
                 <div className="w-9 h-9 rounded-full bg-bg-border flex items-center justify-center">
@@ -196,6 +196,21 @@ export default function Settings({
              </div>
              <div className={`w-10 h-6 rounded-full relative transition-colors duration-300 ${midnightLockEnabled ? 'bg-[#3c78d8]' : 'bg-bg-border'}`}>
                 <div className={`absolute top-1 bg-white w-4 h-4 rounded-full transition-all duration-300 ${midnightLockEnabled ? 'left-5' : 'left-1'}`}/>
+             </div>
+          </button>
+
+          <button 
+             onClick={() => onToggleDarkMode && onToggleDarkMode()}
+             className="w-full flex items-center justify-between p-4 hover:bg-bg-hover transition-colors"
+          >
+             <div className="flex items-center gap-4">
+                <div className="w-9 h-9 rounded-full bg-bg-border flex items-center justify-center">
+                  {isDarkMode ? <Sun className="w-4 h-4 text-text-secondary" /> : <Moon className="w-4 h-4 text-text-secondary" />}
+                </div>
+                <span className="text-[15px] font-medium text-text-primary">{isDarkMode ? "Light Mode" : "Dark Mode"}</span>
+             </div>
+             <div className={`w-10 h-6 rounded-full relative transition-colors duration-300 ${isDarkMode ? 'bg-[#3c78d8]' : 'bg-bg-border'}`}>
+                <div className={`absolute top-1 bg-white w-4 h-4 rounded-full transition-all duration-300 ${isDarkMode ? 'left-5' : 'left-1'}`}/>
              </div>
           </button>
         </div>

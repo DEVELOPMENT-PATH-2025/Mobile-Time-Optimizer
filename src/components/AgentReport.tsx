@@ -13,28 +13,27 @@ type AnalysisResult = {
 export default function AgentReport({ domain, usage }: { domain: string, usage: AppUsage[] }) {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const fetchAnalysis = async () => {
     setLoading(true);
-    setError(null);
-    try {
-      const result = await analyzeUsage(
-        domain, 
-        usage.map(u => ({ app: u.app, time: `${Math.floor(u.timeInMinutes / 60)}h ${u.timeInMinutes % 60}m` }))
-      );
-      if (result && result.error) {
-         setError(result.error);
-      } else if (result) {
-        setAnalysis(result);
+    setAnalysis(null);
+    const result = await analyzeUsage(
+      domain, 
+      usage.map(u => ({ app: u.app, time: `${Math.floor(u.timeInMinutes / 60)}h ${u.timeInMinutes % 60}m` }))
+    );
+    if (result) {
+      if (result.error) {
+        setAnalysis({ 
+            summary: `Error: ${result.error}`, 
+            constructiveSuggestion: "Configure the backend correctly to use AI.", 
+            idealHighUsage: [], 
+            idealLowUsage: [] 
+        });
       } else {
-         setError("Failed to fetch analysis.");
+        setAnalysis(result);
       }
-    } catch (err: any) {
-      setError(err.message || "An unexpected error occurred.");
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -59,14 +58,7 @@ export default function AgentReport({ domain, usage }: { domain: string, usage: 
         </div>
       )}
 
-      {error && !loading && (
-        <div className="w-full bg-red-500/10 border border-red-500/20 rounded-[24px] p-6 flex flex-col items-center justify-center space-y-4 shadow-sm text-center">
-          <p className="text-red-400 text-[15px] font-medium">{error}</p>
-          <button onClick={fetchAnalysis} className="mt-2 text-[#3c78d8] text-sm hover:underline">Try Again</button>
-        </div>
-      )}
-
-      {analysis && !loading && !error && (
+      {analysis && !loading && (
         <div className="space-y-4 animate-in slide-in-from-bottom-4 duration-500">
           
           <div className="bg-gradient-to-br from-[#1c2233] to-[#131823] border border-bg-border rounded-[24px] p-6 shadow-sm">

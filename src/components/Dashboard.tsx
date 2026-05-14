@@ -30,15 +30,18 @@ export default function Dashboard({ domain, userName, usage, onSwitchToAgent, on
     <div className="space-y-5 animate-in fade-in duration-500 pb-6">
       
       {/* Header section */}
-      <div className="pt-2 pb-2 flex items-start justify-between">
+      <div className="pt-2 pb-2 flex justify-between items-start">
          <div>
-           <h1 className="text-[28px] leading-tight font-semibold text-text-secondary">
+           <h1 className="text-[28px] leading-tight font-semibold text-text-primary">
              Good morning, <span className="text-[#3c78d8]">{userName}</span>
            </h1>
            <p className="text-[15px] font-medium text-text-muted mt-1">{dateStr}</p>
          </div>
-         <button onClick={onToggleDarkMode} className="w-10 h-10 shrink-0 rounded-full bg-bg-card border border-bg-border flex items-center justify-center hover:bg-bg-hover transition-colors">
-            {isDarkMode ? <Sun className="w-5 h-5 text-text-secondary" /> : <Moon className="w-5 h-5 text-text-secondary" />}
+         <button 
+           onClick={onToggleDarkMode} 
+           className="p-2.5 bg-bg-card border border-bg-border rounded-[18px] text-text-secondary hover:text-text-primary transition-colors shadow-sm"
+         >
+            {isDarkMode ? <Sun className="w-5 h-5 cursor-pointer" /> : <Moon className="w-5 h-5 cursor-pointer" />}
          </button>
       </div>
 
@@ -57,7 +60,7 @@ export default function Dashboard({ domain, userName, usage, onSwitchToAgent, on
           )}
         </div>
         
-        <p className="text-text-muted text-[15px] font-medium mb-6">Total screen time today</p>
+        <p className="text-[#8c9bab] text-[15px] font-medium mb-6">Total screen time today</p>
         
         <div className="flex justify-between text-[13px] text-text-muted font-medium mb-2.5">
           <span>Daily goal: {dailyGoalMinutes/60}h</span>
@@ -100,22 +103,22 @@ export default function Dashboard({ domain, userName, usage, onSwitchToAgent, on
               <div key={item.app} className="bg-bg-card border border-bg-border rounded-[20px] p-5">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-bg-hover rounded-2xl flex items-center justify-center shrink-0">
+                    <div className="w-12 h-12 bg-[#1c2230] rounded-2xl flex items-center justify-center shrink-0">
                       {getIcon(item.iconName)}
                     </div>
                     <div>
                       <h3 className="font-bold text-[17px] text-text-primary">{item.app}</h3>
-                      <p className="text-text-muted text-[14px]">
+                      <p className="text-[#8c9bab] text-[14px]">
                         {(item.timeInMinutes/60).toFixed(1)}h / {(item.targetInMinutes/60).toFixed(1)}h target
                       </p>
                     </div>
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    <button onClick={() => onUpdateTarget(item.app, -15)} className="w-9 h-9 rounded-full bg-bg-hover flex items-center justify-center text-text-muted hover:text-text-primary transition-colors">
+                    <button onClick={() => onUpdateTarget(item.app, -15)} className="w-9 h-9 rounded-full bg-[#1c2230] flex items-center justify-center text-[#8c9bab] hover:text-text-primary transition-colors">
                       <Minus className="w-4 h-4" />
                     </button>
-                    <button onClick={() => onUpdateTarget(item.app, 15)} className="w-9 h-9 rounded-full bg-bg-hover flex items-center justify-center text-text-muted hover:text-text-primary transition-colors">
+                    <button onClick={() => onUpdateTarget(item.app, 15)} className="w-9 h-9 rounded-full bg-[#1c2230] flex items-center justify-center text-[#8c9bab] hover:text-text-primary transition-colors">
                       <Plus className="w-4 h-4" />
                     </button>
                     <button onClick={onSwitchToAgent} className="w-9 h-9 rounded-[12px] bg-[#3c78d8]/20 flex items-center justify-center text-[#3c78d8] ml-1">
